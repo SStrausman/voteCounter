@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { requireAuth } from '../auth.js'
 import { database } from '../db/client.js'
 import { findOrCreateUser } from '../db/users.js'
-import { gameMembers, games, users } from '../db/schema.js'
+import { gameMembers, games, users, votes } from '../db/schema.js'
 
 const createGameSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -14,6 +14,14 @@ const createGameSchema = z.object({
 
 const joinGameSchema = z.object({
   password: z.string().max(120).optional(),
+})
+
+const playerStateSchema = z.object({
+  isAlive: z.boolean(),
+})
+
+const playerVoteSchema = z.object({
+  targetPlayerId: z.string().uuid(),
 })
 
 export const gamesRouter = Router()
@@ -126,6 +134,7 @@ gamesRouter.get('/:gameId/room', async (request, response, next) => {
         id: users.id,
         displayName: users.displayName,
         profilePictureUrl: users.profilePictureUrl,
+        isAlive: gameMembers.isAlive,
       })
       .from(gameMembers)
       .innerJoin(users, eq(gameMembers.userId, users.id))
@@ -139,6 +148,14 @@ gamesRouter.get('/:gameId/room', async (request, response, next) => {
       return
     }
 
+    const voteRows = await database
+      .select({
+        voterId: votes.voterId,
+        targetPlayerId: votes.targetPlayerId,
+      })
+      .from(votes)
+      .where(eq(votes.gameId, gameIdResult.data))
+
     response.json({
       game: {
         id: game.id,
@@ -150,9 +167,164 @@ gamesRouter.get('/:gameId/room', async (request, response, next) => {
           profilePictureUrl: game.moderatorPictureUrl,
         },
         players: playerRows,
+        votes: voteRows,
         isModerator,
+        isPlayer,
+        currentUserId: currentUser.id,
       },
     })
+  } catch (error) {
+    next(error)
+  }
+})
+
+gamesRouter.put('/:gameId/vote', async (request, response, next) => {
+  const gameIdResult = z.string().uuid().safeParse(request.params.gameId)
+  const bodyResult = playerVoteSchema.safeParse(request.body)
+
+  if (!gameIdResult.success || !bodyResult.success) {
+    response.status(400).json({ error: 'Invalid vote' })
+    return
+  }
+
+  try {
+    const voter = await findOrCreateUser(database, request.auth.payload.sub)
+    const [game] = await database
+      .select({ startedAt: games.startedAt })
+      .from(games)
+      .where(eq(games.id, gameIdResult.data))
+      .limit(1)
+
+    if (!game) {
+      response.status(404).json({ error: 'Game not found' })
+      return
+    }
+
+    if (!game.startedAt) {
+      response.status(409).json({ error: 'Game has not started' })
+      return
+    }
+
+    const memberRows = await database
+      .select({
+        userId: gameMembers.userId,
+        isAlive: gameMembers.isAlive,
+      })
+      .from(gameMembers)
+      .where(eq(gameMembers.gameId, gameIdResult.data))
+    const memberIds = new Set(memberRows.map((member) => member.userId))
+    const targetPlayer = memberRows.find(
+      (member) => member.userId === bodyResult.data.targetPlayerId,
+    )
+
+    if (!memberIds.has(voter.id)) {
+      response.status(403).json({ error: 'Only players can vote' })
+      return
+    }
+
+    if (!targetPlayer) {
+      response.status(400).json({ error: 'Vote target is not part of this game' })
+      return
+    }
+
+    if (!targetPlayer.isAlive) {
+      response.status(400).json({ error: 'You cannot vote for a dead player' })
+      return
+    }
+
+    const [vote] = await database
+      .insert(votes)
+      .values({
+        gameId: gameIdResult.data,
+        voterId: voter.id,
+        targetPlayerId: bodyResult.data.targetPlayerId,
+      })
+      .onConflictDoUpdate({
+        target: [votes.gameId, votes.voterId],
+        set: {
+          targetPlayerId: bodyResult.data.targetPlayerId,
+          createdAt: new Date(),
+        },
+      })
+      .returning({
+        voterId: votes.voterId,
+        targetPlayerId: votes.targetPlayerId,
+      })
+
+    response.json({ vote })
+  } catch (error) {
+    next(error)
+  }
+})
+
+gamesRouter.delete('/:gameId/vote', async (request, response, next) => {
+  const gameIdResult = z.string().uuid().safeParse(request.params.gameId)
+
+  if (!gameIdResult.success) {
+    response.status(400).json({ error: 'Invalid vote' })
+    return
+  }
+
+  try {
+    const voter = await findOrCreateUser(database, request.auth.payload.sub)
+    const [membership] = await database
+      .select({ userId: gameMembers.userId })
+      .from(gameMembers)
+      .where(and(
+        eq(gameMembers.gameId, gameIdResult.data),
+        eq(gameMembers.userId, voter.id),
+      ))
+      .limit(1)
+
+    if (!membership) {
+      response.status(403).json({ error: 'Only players can remove a vote' })
+      return
+    }
+
+    await database
+      .delete(votes)
+      .where(and(
+        eq(votes.gameId, gameIdResult.data),
+        eq(votes.voterId, voter.id),
+      ))
+
+    response.status(204).end()
+  } catch (error) {
+    next(error)
+  }
+})
+
+gamesRouter.delete('/:gameId/votes', async (request, response, next) => {
+  const gameIdResult = z.string().uuid().safeParse(request.params.gameId)
+
+  if (!gameIdResult.success) {
+    response.status(400).json({ error: 'Invalid game' })
+    return
+  }
+
+  try {
+    const moderator = await findOrCreateUser(database, request.auth.payload.sub)
+    const [game] = await database
+      .select({ moderatorId: games.moderatorId })
+      .from(games)
+      .where(eq(games.id, gameIdResult.data))
+      .limit(1)
+
+    if (!game) {
+      response.status(404).json({ error: 'Game not found' })
+      return
+    }
+
+    if (game.moderatorId !== moderator.id) {
+      response.status(403).json({ error: 'Only the moderator can clear votes' })
+      return
+    }
+
+    await database
+      .delete(votes)
+      .where(eq(votes.gameId, gameIdResult.data))
+
+    response.status(204).end()
   } catch (error) {
     next(error)
   }
@@ -456,6 +628,69 @@ gamesRouter.delete('/:gameId/players/:playerId', async (request, response, next)
       ))
 
     response.status(204).end()
+  } catch (error) {
+    next(error)
+  }
+})
+
+gamesRouter.patch('/:gameId/players/:playerId/state', async (request, response, next) => {
+  const paramsResult = z.object({
+    gameId: z.string().uuid(),
+    playerId: z.string().uuid(),
+  }).safeParse(request.params)
+  const bodyResult = playerStateSchema.safeParse(request.body)
+
+  if (!paramsResult.success || !bodyResult.success) {
+    response.status(400).json({ error: 'Invalid player state request' })
+    return
+  }
+
+  try {
+    const moderator = await findOrCreateUser(database, request.auth.payload.sub)
+    const [game] = await database
+      .select({ moderatorId: games.moderatorId })
+      .from(games)
+      .where(eq(games.id, paramsResult.data.gameId))
+      .limit(1)
+
+    if (!game) {
+      response.status(404).json({ error: 'Game not found' })
+      return
+    }
+
+    if (game.moderatorId !== moderator.id) {
+      response.status(403).json({ error: 'Only the moderator can update player state' })
+      return
+    }
+
+    const updatedPlayer = await database.transaction(async (transaction) => {
+      const [player] = await transaction
+        .update(gameMembers)
+        .set({ isAlive: bodyResult.data.isAlive })
+        .where(and(
+          eq(gameMembers.gameId, paramsResult.data.gameId),
+          eq(gameMembers.userId, paramsResult.data.playerId),
+        ))
+        .returning({ isAlive: gameMembers.isAlive })
+
+      if (player && !player.isAlive) {
+        await transaction
+          .delete(votes)
+          .where(and(
+            eq(votes.gameId, paramsResult.data.gameId),
+            eq(votes.targetPlayerId, paramsResult.data.playerId),
+          ))
+      }
+
+      return player
+    })
+
+    if (!updatedPlayer) {
+      response.status(404).json({ error: 'Player not found' })
+      return
+    }
+
+    response.json({ isAlive: updatedPlayer.isAlive })
   } catch (error) {
     next(error)
   }

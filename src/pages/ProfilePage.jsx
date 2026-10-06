@@ -8,6 +8,7 @@ const emptyProfile = {
   profilePictureUrl: '',
   theme: 'light',
   gamesPlayed: 0,
+  gamesModerated: 0,
 }
 
 function ProfilePage() {
@@ -140,9 +141,15 @@ function ProfilePage() {
           <p className="profile-eyebrow">Account</p>
           <h1>{profile.displayName || 'Your profile'}</h1>
         </div>
-        <div className="games-played">
-          <strong>{profile.gamesPlayed}</strong>
-          <span>Games played</span>
+        <div className="profile-stats">
+          <div className="profile-stat">
+            <strong>{profile.gamesPlayed}</strong>
+            <span>Games played</span>
+          </div>
+          <div className="profile-stat">
+            <strong>{profile.gamesModerated}</strong>
+            <span>Games moderated</span>
+          </div>
         </div>
       </header>
 

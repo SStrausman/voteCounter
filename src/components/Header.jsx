@@ -20,8 +20,6 @@ function Header() {
         <img src={homeImage} alt="" />
       </Link>
       <nav aria-label="Main navigation">
-        <Link to="/games">Games</Link>
-        <Link to="/games/create">Create game</Link>
         {isAuthenticated && <Link to="/profile">Profile</Link>}
         <button
           className="auth-button"

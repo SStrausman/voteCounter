@@ -3,7 +3,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { requireAuth } from '../auth.js'
 import { database } from '../db/client.js'
-import { gameMembers, users } from '../db/schema.js'
+import { gameMembers, games, users } from '../db/schema.js'
 import { findOrCreateUser } from '../db/users.js'
 
 const profileSchema = z.object({
@@ -26,6 +26,15 @@ async function getGamesPlayed(userId) {
   return result.gamesPlayed
 }
 
+async function getGamesModerated(userId) {
+  const [result] = await database
+    .select({ gamesModerated: count() })
+    .from(games)
+    .where(eq(games.moderatorId, userId))
+
+  return result.gamesModerated
+}
+
 export const profileRouter = Router()
 
 profileRouter.use(requireAuth)
@@ -33,7 +42,10 @@ profileRouter.use(requireAuth)
 profileRouter.get('/', async (request, response, next) => {
   try {
     const user = await findOrCreateUser(database, request.auth.payload.sub)
-    const gamesPlayed = await getGamesPlayed(user.id)
+    const [gamesPlayed, gamesModerated] = await Promise.all([
+      getGamesPlayed(user.id),
+      getGamesModerated(user.id),
+    ])
 
     response.json({
       profile: {
@@ -41,6 +53,7 @@ profileRouter.get('/', async (request, response, next) => {
         profilePictureUrl: user.profilePictureUrl,
         theme: user.theme,
         gamesPlayed,
+        gamesModerated,
       },
     })
   } catch (error) {
@@ -97,7 +110,10 @@ profileRouter.patch('/', async (request, response, next) => {
       })
       .where(eq(users.id, user.id))
       .returning()
-    const gamesPlayed = await getGamesPlayed(user.id)
+    const [gamesPlayed, gamesModerated] = await Promise.all([
+      getGamesPlayed(user.id),
+      getGamesModerated(user.id),
+    ])
 
     response.json({
       profile: {
@@ -105,6 +121,7 @@ profileRouter.patch('/', async (request, response, next) => {
         profilePictureUrl: updatedUser.profilePictureUrl,
         theme: updatedUser.theme,
         gamesPlayed,
+        gamesModerated,
       },
     })
   } catch (error) {

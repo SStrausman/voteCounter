@@ -1,0 +1,1 @@
+ALTER TABLE "game_members" ADD COLUMN "is_alive" boolean DEFAULT true NOT NULL;

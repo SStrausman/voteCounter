@@ -107,6 +107,7 @@
 .profile-page,
 .profile-access,
 .games-page,
+.game-room,
 .create-game-page,
 .auth-prompt {
   width: min(880px, calc(100% - 40px));
@@ -435,7 +436,7 @@
 
 .game-room {
   display: grid;
-  gap: 36px;
+  gap: 16px;
 }
 
 .game-room-heading {
@@ -454,6 +455,126 @@
 .game-room-error a {
   color: var(--accent);
   font-weight: 700;
+}
+
+.room-rosters {
+  display: grid;
+  gap: 32px;
+}
+
+.room-voting {
+  display: grid;
+  gap: 12px;
+}
+
+.room-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.room-section-heading h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.room-section-heading > strong {
+  color: var(--muted-text);
+  font-size: 0.9rem;
+}
+
+.clear-votes-button {
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.clear-votes-button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.clear-votes-button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.vote-summary {
+  padding-top: 0;
+}
+
+.vote-summary ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vote-summary li {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  color: var(--muted-text);
+}
+
+.vote-target {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  gap: 8px;
+  padding-right: 16px;
+  border-right: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.vote-voters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  overflow-wrap: anywhere;
+}
+
+.vote-voter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vote-target img,
+.vote-voter img,
+.vote-avatar {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--avatar-background);
+  color: var(--avatar-text);
+  object-fit: cover;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.vote-summary li strong {
+  color: var(--accent);
+}
+
+.vote-summary p {
+  margin: 0;
+  color: var(--muted-text);
 }
 
 .room-roster h2 {
@@ -497,9 +618,51 @@
 }
 
 .room-roster strong {
+  min-width: 0;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.room-player-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.room-roster button {
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.room-roster button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.room-roster button.active-vote {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--button-text);
+}
+
+.room-roster button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.room-roster-empty {
+  margin: 0;
+  color: var(--muted-text);
 }
 
 .game-room-error {
@@ -597,19 +760,24 @@
   line-height: 1.05;
 }
 
-.games-played {
+.profile-stats {
+  display: grid;
+  gap: 16px;
+}
+
+.profile-stat {
   display: flex;
   min-width: 132px;
   flex-direction: column;
   align-items: flex-end;
 }
 
-.games-played strong {
+.profile-stat strong {
   color: var(--accent);
   font-size: 2rem;
 }
 
-.games-played span {
+.profile-stat span {
   color: var(--muted-text);
   font-size: 0.9rem;
 }
@@ -821,8 +989,106 @@
     flex-direction: column;
   }
 
+  .room-section-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .game-room {
+    gap: 12px;
+  }
+
+  .room-voting {
+    gap: 10px;
+  }
+
+  .vote-summary {
+    padding-top: 0;
+  }
+
+  .vote-summary ul {
+    gap: 6px;
+  }
+
+  .vote-summary li {
+    grid-template-columns: minmax(64px, 0.7fr) minmax(28px, 1fr) auto;
+    gap: 8px;
+    padding: 6px 0;
+  }
+
+  .vote-summary li:first-child {
+    padding-top: 0;
+  }
+
+  .vote-summary li:last-child {
+    padding-bottom: 0;
+  }
+
+  .vote-target {
+    min-width: 0;
+    padding: 0 8px 0 0;
+    border-right: 1px solid var(--border);
+    border-bottom: 0;
+  }
+
+  .vote-target > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .vote-voters {
+    min-width: 0;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .vote-voters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .vote-voter {
+    flex: 0 0 auto;
+  }
+
+  .vote-summary li > strong {
+    justify-self: end;
+    white-space: nowrap;
+    font-size: 0.75rem;
+  }
+
   .room-roster ul {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .room-roster li {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .room-roster img,
+  .room-roster li > span {
+    width: 32px;
+    height: 32px;
+  }
+
+  .room-player-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+    padding-top: 0;
+  }
+
+  .room-player-actions button {
+    flex: 1;
+    min-height: 32px;
+    padding: 5px 8px;
+    font-size: 0.75rem;
   }
 
   .game-card-content {
@@ -848,8 +1114,11 @@
     font-size: 2rem;
   }
 
-  .games-played {
+  .profile-stats {
     grid-column: 1 / -1;
+  }
+
+  .profile-stat {
     align-items: flex-start;
   }
 }

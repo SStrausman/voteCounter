@@ -1,4 +1,5 @@
 import {
+  boolean,
   integer,
   pgTable,
   primaryKey,
@@ -48,6 +49,7 @@ export const gameMembers = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     role: varchar('role', { length: 20 }).default('member').notNull(),
+    isAlive: boolean('is_alive').default(true).notNull(),
     joinedAt: timestamp('joined_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -55,31 +57,21 @@ export const gameMembers = pgTable(
   (table) => [primaryKey({ columns: [table.gameId, table.userId] })],
 )
 
-export const gameOptions = pgTable('game_options', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  gameId: uuid('game_id')
-    .notNull()
-    .references(() => games.id, { onDelete: 'cascade' }),
-  label: varchar('label', { length: 120 }).notNull(),
-  position: integer('position').notNull(),
-})
-
 export const votes = pgTable(
   'votes',
   {
-    id: uuid('id').defaultRandom().primaryKey(),
     gameId: uuid('game_id')
       .notNull()
       .references(() => games.id, { onDelete: 'cascade' }),
-    optionId: uuid('option_id')
+    voterId: uuid('voter_id')
       .notNull()
-      .references(() => gameOptions.id, { onDelete: 'cascade' }),
-    userId: uuid('user_id')
+      .references(() => users.id, { onDelete: 'cascade' }),
+    targetPlayerId: uuid('target_player_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
-  (table) => [uniqueIndex('votes_game_user_idx').on(table.gameId, table.userId)],
+  (table) => [primaryKey({ columns: [table.gameId, table.voterId] })],
 )
