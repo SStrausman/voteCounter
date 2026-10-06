@@ -1,0 +1,1 @@
+ALTER TABLE "games" ADD COLUMN "started_at" timestamp with time zone;

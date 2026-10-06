@@ -1,6 +1,6 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { Link } from 'react-router-dom'
-import homeImage from '../assets/hero.png'
+import homeImage from '../assets/mafia.png'
 
 function Header() {
   const { isAuthenticated, isLoading, loginWithRedirect, logout } = useAuth0()

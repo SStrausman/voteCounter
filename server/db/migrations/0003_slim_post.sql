@@ -1,0 +1,1 @@
+ALTER TABLE "games" ADD COLUMN "join_password" varchar(120);

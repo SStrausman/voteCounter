@@ -132,8 +132,7 @@
   line-height: 1.05;
 }
 
-.page-eyebrow,
-.game-status {
+.page-eyebrow {
   margin: 0 0 6px;
   color: var(--muted-text);
   font-size: 0.75rem;
@@ -157,7 +156,7 @@
 
 .game-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   padding-top: 32px;
 }
@@ -178,6 +177,48 @@
   margin: 0;
   overflow-wrap: anywhere;
   font-size: 1.4rem;
+}
+
+.game-card-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.delete-game-button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--danger);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.delete-game-button:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--button-text);
+}
+
+.delete-game-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.game-card-content {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
+  gap: 36px;
+  align-items: start;
+}
+
+.game-card-info {
+  display: grid;
+  gap: 24px;
 }
 
 .game-details {
@@ -201,6 +242,275 @@
 .game-details dd {
   margin: 0;
   font-weight: 600;
+}
+
+.moderator-detail {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.player-roster {
+  min-width: 0;
+}
+
+.player-roster h3 {
+  margin: 0 0 10px;
+  color: var(--muted-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.player-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player-list li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.player-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-avatar {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--avatar-background);
+  color: var(--avatar-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.player-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.player-list button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--danger);
+  cursor: pointer;
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.player-list button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.game-join {
+  display: grid;
+  gap: 8px;
+}
+
+.join-error {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.join-error {
+  color: var(--danger);
+}
+
+.join-form {
+  display: grid;
+  gap: 7px;
+}
+
+.join-form label {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.join-form div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.join-form input {
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.join-form input:focus {
+  border-color: var(--accent);
+  outline: 3px solid var(--focus);
+}
+
+.join-button,
+.leave-button,
+.start-game-button,
+.undo-start-button,
+.join-form button {
+  width: 190px;
+  max-width: 100%;
+  min-height: 42px;
+  padding: 8px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--button-text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.join-button:hover:not(:disabled),
+.leave-button:hover:not(:disabled),
+.start-game-button:hover:not(:disabled),
+.undo-start-button:hover:not(:disabled),
+.join-form button:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.join-button:disabled,
+.leave-button:disabled,
+.start-game-button:disabled,
+.undo-start-button:disabled,
+.join-form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.join-form button {
+  width: fit-content;
+  max-width: none;
+}
+
+.room-link {
+  display: inline-flex;
+  width: 190px;
+  max-width: 100%;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 16px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--button-text);
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.room-link:hover {
+  background: var(--accent-hover);
+}
+
+.game-room {
+  display: grid;
+  gap: 36px;
+}
+
+.game-room-heading {
+  display: flex;
+  gap: 24px;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.game-room-heading h1 {
+  margin: 0;
+  font-size: 3rem;
+}
+
+.game-room-heading a,
+.game-room-error a {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.room-roster h2 {
+  margin: 0 0 16px;
+  font-size: 1.25rem;
+}
+
+.room-roster ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.room-roster li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.room-roster img,
+.room-roster li > span {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--avatar-background);
+  color: var(--avatar-text);
+  object-fit: cover;
+  font-weight: 700;
+}
+
+.room-roster strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-room-error {
+  display: grid;
+  gap: 12px;
+}
+
+.game-room-error p {
+  margin: 0;
+  color: var(--danger);
+  font-weight: 700;
 }
 
 .empty-state {
@@ -488,6 +798,7 @@
   .profile-page,
   .profile-access,
   .games-page,
+  .game-room,
   .create-game-page,
   .auth-prompt {
     padding-top: 48px;
@@ -499,9 +810,27 @@
   }
 
   .page-heading h1,
+  .game-room-heading h1,
   .create-game-page h1,
   .auth-prompt h1 {
     font-size: 2rem;
+  }
+
+  .game-room-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .room-roster ul {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .game-card-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .player-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .profile-heading {

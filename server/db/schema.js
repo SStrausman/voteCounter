@@ -30,7 +30,9 @@ export const games = pgTable('games', {
   moderatorId: uuid('owner_id')
     .notNull()
     .references(() => users.id),
-  status: varchar('status', { length: 20 }).default('draft').notNull(),
+  joinPassword: varchar('join_password', { length: 120 }),
+  totalPlayers: integer('total_players').notNull(),
+  startedAt: timestamp('started_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

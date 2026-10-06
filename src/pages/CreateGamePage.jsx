@@ -8,6 +8,8 @@ function CreateGamePage() {
   const { request } = useApi()
   const navigate = useNavigate()
   const [name, setName] = useState('')
+  const [password, setPassword] = useState('')
+  const [totalPlayers, setTotalPlayers] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -19,7 +21,7 @@ function CreateGamePage() {
     try {
       await request('/games', {
         method: 'POST',
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, password, totalPlayers: Number(totalPlayers) }),
       })
       navigate('/')
     } catch (requestError) {
@@ -46,7 +48,6 @@ function CreateGamePage() {
     <section className="create-game-page">
       <p className="page-eyebrow">New game</p>
       <h1>Create a game</h1>
-      <p className="page-intro">You will be the moderator. Players can be added later.</p>
 
       <form className="game-form" onSubmit={handleSubmit}>
         <div className="field-group">
@@ -59,6 +60,29 @@ function CreateGamePage() {
             required
             autoFocus
             onChange={(event) => setName(event.target.value)}
+          />
+        </div>
+
+        <div className="field-group">
+          <label htmlFor="gamePassword">Join password (optional)</label>
+          <input
+            id="gamePassword"
+            type="text"
+            value={password}
+            maxLength={120}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </div>
+
+        <div className="field-group">
+          <label htmlFor="totalPlayers">Total players</label>
+          <input
+            id="totalPlayers"
+            type="number"
+            value={totalPlayers}
+            min="1"
+            required
+            onChange={(event) => setTotalPlayers(event.target.value)}
           />
         </div>
 
