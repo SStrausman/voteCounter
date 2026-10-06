@@ -1,0 +1,363 @@
+:root {
+  color-scheme: light;
+  --page-background: #f6f8f7;
+  --surface: #ffffff;
+  --text: #172126;
+  --muted-text: #52615c;
+  --border: #d7ddda;
+  --input-border: #b7c3be;
+  --accent: #087f5b;
+  --accent-hover: #066a4c;
+  --focus: #c9eadd;
+  --avatar-background: #dcebe5;
+  --avatar-text: #145943;
+  --danger: #a12626;
+  --button-text: #ffffff;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --page-background: #171a19;
+  --surface: #202422;
+  --text: #f2f4f3;
+  --muted-text: #aebbb6;
+  --border: #3d4844;
+  --input-border: #56635e;
+  --accent: #48c99a;
+  --accent-hover: #62d8ad;
+  --focus: #255c48;
+  --avatar-background: #29483d;
+  --avatar-text: #75ddb7;
+  --danger: #ff8d8d;
+  --button-text: #10251d;
+}
+
+.page {
+  min-height: 100vh;
+  color: var(--text);
+  background: var(--page-background);
+  font-family: Avenir, 'Avenir Next', sans-serif;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.site-header {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 clamp(20px, 5vw, 64px);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  font-family: Avenir, 'Avenir Next', sans-serif;
+}
+
+.site-header nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.site-header a,
+.auth-button {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.site-header a:hover,
+.auth-button:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.site-header a:focus-visible,
+.auth-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 5px;
+}
+
+.auth-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.profile-page,
+.profile-access {
+  width: min(880px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 72px 0 96px;
+}
+
+.profile-heading {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: center;
+  padding-bottom: 36px;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-avatar {
+  display: grid;
+  width: 96px;
+  height: 96px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--avatar-background);
+  color: var(--avatar-text);
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-eyebrow {
+  margin: 0 0 6px;
+  color: var(--muted-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.profile-heading h1,
+.profile-access h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 3.25rem;
+  line-height: 1.05;
+}
+
+.games-played {
+  display: flex;
+  min-width: 132px;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.games-played strong {
+  color: var(--accent);
+  font-size: 2rem;
+}
+
+.games-played span {
+  color: var(--muted-text);
+  font-size: 0.9rem;
+}
+
+.profile-form {
+  display: grid;
+  gap: 24px;
+  max-width: 600px;
+  padding-top: 40px;
+}
+
+.field-group {
+  display: grid;
+  gap: 8px;
+}
+
+.field-group label {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.field-group input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.field-group input:focus {
+  border-color: var(--accent);
+  outline: 3px solid var(--focus);
+}
+
+.theme-setting {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.theme-setting legend {
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.theme-toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 20px;
+  align-items: center;
+  min-height: 72px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.theme-toggle > span:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.theme-toggle small {
+  color: var(--muted-text);
+  font-size: 0.85rem;
+}
+
+.theme-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.toggle-track {
+  display: flex;
+  width: 44px;
+  height: 24px;
+  align-items: center;
+  padding: 2px;
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+  background: var(--border);
+  transition: background-color 160ms ease;
+}
+
+.toggle-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
+  transition: transform 160ms ease;
+}
+
+.theme-toggle input:checked + .toggle-track {
+  background: var(--accent);
+}
+
+.theme-toggle input:checked + .toggle-track .toggle-thumb {
+  transform: translateX(20px);
+}
+
+.theme-toggle:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.save-button,
+.profile-access button {
+  width: fit-content;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--button-text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.save-button:hover:not(:disabled),
+.profile-access button:hover {
+  background: var(--accent-hover);
+}
+
+.save-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.form-message,
+.profile-status {
+  margin: 0;
+}
+
+.form-error {
+  color: var(--danger);
+}
+
+.form-success {
+  color: var(--accent);
+}
+
+.profile-status {
+  padding: 72px clamp(20px, 5vw, 64px);
+}
+
+.profile-access p {
+  margin: 16px 0 24px;
+  color: var(--muted-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page,
+  .toggle-track,
+  .toggle-thumb {
+    transition: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .site-header {
+    min-height: auto;
+    padding-block: 18px;
+  }
+
+  .site-header nav {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 14px 20px;
+  }
+
+  .profile-page,
+  .profile-access {
+    padding-top: 48px;
+  }
+
+  .profile-heading {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .profile-avatar {
+    width: 72px;
+    height: 72px;
+  }
+
+  .profile-heading h1,
+  .profile-access h1 {
+    font-size: 2rem;
+  }
+
+  .games-played {
+    grid-column: 1 / -1;
+    align-items: flex-start;
+  }
+}
