@@ -4,34 +4,64 @@ import { z } from 'zod'
 import { requireAuth } from '../auth.js'
 import { database } from '../db/client.js'
 import { findOrCreateUser } from '../db/users.js'
-import { gameMembers, gameOptions, games } from '../db/schema.js'
+import { gameMembers, games, users } from '../db/schema.js'
 
 const createGameSchema = z.object({
   name: z.string().trim().min(1).max(120),
-  options: z.array(z.string().trim().min(1).max(120)).min(2).max(20),
 })
 
 export const gamesRouter = Router()
 
 gamesRouter.use(requireAuth)
 
-gamesRouter.get('/', async (request, response, next) => {
+gamesRouter.get('/', async (_request, response, next) => {
   try {
-    const user = await findOrCreateUser(database, request.auth.payload.sub)
-    const userGames = await database
+    const gameRows = await database
       .select({
         id: games.id,
         name: games.name,
         status: games.status,
-        role: gameMembers.role,
         createdAt: games.createdAt,
+        moderatorId: users.id,
+        moderatorName: users.displayName,
+        moderatorPictureUrl: users.profilePictureUrl,
       })
-      .from(gameMembers)
-      .innerJoin(games, eq(gameMembers.gameId, games.id))
-      .where(eq(gameMembers.userId, user.id))
+      .from(games)
+      .innerJoin(users, eq(games.moderatorId, users.id))
       .orderBy(desc(games.createdAt))
 
-    response.json({ games: userGames })
+    const playerRows = await database
+      .select({
+        gameId: gameMembers.gameId,
+        id: users.id,
+        displayName: users.displayName,
+        profilePictureUrl: users.profilePictureUrl,
+        role: gameMembers.role,
+      })
+      .from(gameMembers)
+      .innerJoin(users, eq(gameMembers.userId, users.id))
+
+    const playersByGame = playerRows.reduce((players, player) => {
+      const gamePlayers = players.get(player.gameId) ?? []
+      gamePlayers.push(player)
+      players.set(player.gameId, gamePlayers)
+      return players
+    }, new Map())
+
+    response.json({
+      games: gameRows.map((game) => ({
+        id: game.id,
+        name: game.name,
+        status: game.status,
+        createdAt: game.createdAt,
+        moderator: {
+          id: game.moderatorId,
+          displayName: game.moderatorName,
+          profilePictureUrl: game.moderatorPictureUrl,
+        },
+        players: playersByGame.get(game.id) ?? [],
+      })),
+    })
   } catch (error) {
     next(error)
   }
@@ -47,33 +77,24 @@ gamesRouter.post('/', async (request, response, next) => {
 
   try {
     const game = await database.transaction(async (transaction) => {
-      const user = await findOrCreateUser(
+      const moderator = await findOrCreateUser(
         transaction,
         request.auth.payload.sub,
       )
       const [createdGame] = await transaction
         .insert(games)
-        .values({ name: result.data.name, ownerId: user.id })
+        .values({ name: result.data.name, moderatorId: moderator.id })
         .returning()
 
-      await transaction.insert(gameMembers).values({
-        gameId: createdGame.id,
-        userId: user.id,
-        role: 'owner',
-      })
-
-      const options = await transaction
-        .insert(gameOptions)
-        .values(
-          result.data.options.map((label, position) => ({
-            gameId: createdGame.id,
-            label,
-            position,
-          })),
-        )
-        .returning()
-
-      return { ...createdGame, options }
+      return {
+        ...createdGame,
+        moderator: {
+          id: moderator.id,
+          displayName: moderator.displayName,
+          profilePictureUrl: moderator.profilePictureUrl,
+        },
+        players: [],
+      }
     })
 
     response.status(201).json({ game })

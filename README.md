@@ -64,8 +64,8 @@ Do not set `PORT`; Heroku supplies it. Add the Heroku app URL to the Auth0 appli
 ## API
 
 - `GET /api/health` is public.
-- `GET /api/games` returns games belonging to the authenticated user.
-- `POST /api/games` creates a game and accepts JSON shaped like `{ "name": "Game name", "options": ["One", "Two"] }`.
+- `GET /api/games` returns all games with their moderator and player list.
+- `POST /api/games` creates a game with the authenticated user as moderator and accepts JSON shaped like `{ "name": "Game name" }`. New games start with no players.
 - `GET /api/profile` returns the authenticated user's profile and games-played count.
 - `PATCH /api/profile` updates the authenticated user's display name and profile picture URL.
 

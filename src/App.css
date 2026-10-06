@@ -44,11 +44,26 @@
   display: flex;
   min-height: 64px;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   padding: 0 clamp(20px, 5vw, 64px);
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   font-family: Avenir, 'Avenir Next', sans-serif;
+}
+
+.home-link {
+  display: flex;
+  width: 92px;
+  height: 48px;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.home-link img {
+  display: block;
+  width: 100%;
+  max-height: 48px;
+  object-fit: contain;
 }
 
 .site-header nav {
@@ -90,10 +105,141 @@
 }
 
 .profile-page,
-.profile-access {
+.profile-access,
+.games-page,
+.create-game-page,
+.auth-prompt {
   width: min(880px, calc(100% - 40px));
   margin: 0 auto;
   padding: 72px 0 96px;
+}
+
+.page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-heading h1,
+.create-game-page h1,
+.auth-prompt h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 3.25rem;
+  line-height: 1.05;
+}
+
+.page-eyebrow,
+.game-status {
+  margin: 0 0 6px;
+  color: var(--muted-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.primary-link {
+  min-height: 44px;
+  padding: 11px 18px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--button-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.primary-link:hover {
+  background: var(--accent-hover);
+}
+
+.game-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 16px;
+  padding-top: 32px;
+}
+
+.game-card {
+  display: grid;
+  min-height: 180px;
+  align-content: space-between;
+  gap: 28px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.game-card h2,
+.empty-state h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 1.4rem;
+}
+
+.game-details {
+  display: flex;
+  gap: 28px;
+  margin: 0;
+}
+
+.game-details div {
+  display: grid;
+  gap: 3px;
+}
+
+.game-details dt {
+  color: var(--muted-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.game-details dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.empty-state {
+  padding: 56px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.empty-state p,
+.page-intro,
+.auth-prompt p {
+  color: var(--muted-text);
+}
+
+.page-intro {
+  margin: 14px 0 0;
+}
+
+.game-form {
+  display: grid;
+  gap: 24px;
+  max-width: 600px;
+  padding-top: 40px;
+}
+
+.page-status {
+  margin: 0;
+  padding: 72px clamp(20px, 5vw, 64px);
+}
+
+.auth-prompt button {
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--button-text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
 }
 
 .profile-heading {
@@ -330,15 +476,32 @@
   }
 
   .site-header nav {
-    width: 100%;
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 14px 20px;
   }
 
+  .home-link {
+    width: 72px;
+  }
+
   .profile-page,
-  .profile-access {
+  .profile-access,
+  .games-page,
+  .create-game-page,
+  .auth-prompt {
     padding-top: 48px;
+  }
+
+  .page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .page-heading h1,
+  .create-game-page h1,
+  .auth-prompt h1 {
+    font-size: 2rem;
   }
 
   .profile-heading {

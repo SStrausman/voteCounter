@@ -1,5 +1,6 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { Link } from 'react-router-dom'
+import homeImage from '../assets/hero.png'
 
 function Header() {
   const { isAuthenticated, isLoading, loginWithRedirect, logout } = useAuth0()
@@ -15,6 +16,9 @@ function Header() {
 
   return (
     <header className="site-header">
+      <Link className="home-link" to="/" aria-label="Home">
+        <img src={homeImage} alt="" />
+      </Link>
       <nav aria-label="Main navigation">
         <Link to="/games">Games</Link>
         <Link to="/games/create">Create game</Link>

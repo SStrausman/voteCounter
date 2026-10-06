@@ -27,7 +27,7 @@ export const users = pgTable(
 export const games = pgTable('games', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 120 }).notNull(),
-  ownerId: uuid('owner_id')
+  moderatorId: uuid('owner_id')
     .notNull()
     .references(() => users.id),
   status: varchar('status', { length: 20 }).default('draft').notNull(),
