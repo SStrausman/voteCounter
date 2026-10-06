@@ -44,6 +44,23 @@ npm run server:dev
 
 The frontend runs at `http://localhost:5173` and the API runs at `http://localhost:3001`.
 
+## Heroku
+
+The production Express process serves both the `/api` routes and the built React app. Configure these Heroku Config Vars before deploying:
+
+```text
+AUTH0_DOMAIN=your-tenant.us.auth0.com
+AUTH0_AUDIENCE=https://api.votecounter.local
+CLIENT_ORIGIN=https://your-app.herokuapp.com
+DATABASE_URL=postgresql://...
+VITE_AUTH0_DOMAIN=your-tenant.us.auth0.com
+VITE_AUTH0_CLIENT_ID=your-auth0-client-id
+VITE_AUTH0_AUDIENCE=https://api.votecounter.local
+VITE_API_URL=/api
+```
+
+Do not set `PORT`; Heroku supplies it. Add the Heroku app URL to the Auth0 application's allowed callback URLs, logout URLs, and web origins.
+
 ## API
 
 - `GET /api/health` is public.

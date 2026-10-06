@@ -1,5 +1,6 @@
 import cors from 'cors'
 import express from 'express'
+import { fileURLToPath } from 'node:url'
 import { config } from './config.js'
 import { pool } from './db/client.js'
 import { gamesRouter } from './routes/games.js'
@@ -16,6 +17,20 @@ app.get('/api/health', (_request, response) => {
 
 app.use('/api/games', gamesRouter)
 app.use('/api/profile', profileRouter)
+
+if (process.env.NODE_ENV === 'production') {
+  const clientDirectory = fileURLToPath(new URL('../dist', import.meta.url))
+
+  app.use(express.static(clientDirectory))
+  app.use((request, response, next) => {
+    if (request.method !== 'GET' || request.path.startsWith('/api/')) {
+      next()
+      return
+    }
+
+    response.sendFile('index.html', { root: clientDirectory })
+  })
+}
 
 app.use((error, _request, response, _next) => {
   const statusCode = error.status ?? 500
