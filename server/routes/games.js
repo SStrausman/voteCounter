@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { requireAuth } from '../auth.js'
 import { database } from '../db/client.js'
 import { findOrCreateUser } from '../db/users.js'
-import { gameMembers, games, users, votes } from '../db/schema.js'
+import { gameActions, gameMembers, games, users, votes } from '../db/schema.js'
 
 const createGameSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -156,6 +156,18 @@ gamesRouter.get('/:gameId/room', async (request, response, next) => {
       .from(votes)
       .where(eq(votes.gameId, gameIdResult.data))
 
+    const actionRows = await database
+      .select({
+        id: gameActions.id,
+        actorId: gameActions.actorId,
+        targetPlayerId: gameActions.targetPlayerId,
+        actionType: gameActions.actionType,
+        createdAt: gameActions.createdAt,
+      })
+      .from(gameActions)
+      .where(eq(gameActions.gameId, gameIdResult.data))
+      .orderBy(desc(gameActions.createdAt))
+
     response.json({
       game: {
         id: game.id,
@@ -168,6 +180,7 @@ gamesRouter.get('/:gameId/room', async (request, response, next) => {
         },
         players: playerRows,
         votes: voteRows,
+        actions: actionRows,
         isModerator,
         isPlayer,
         currentUserId: currentUser.id,
@@ -232,26 +245,46 @@ gamesRouter.put('/:gameId/vote', async (request, response, next) => {
       return
     }
 
-    const [vote] = await database
-      .insert(votes)
-      .values({
-        gameId: gameIdResult.data,
-        voterId: voter.id,
-        targetPlayerId: bodyResult.data.targetPlayerId,
-      })
-      .onConflictDoUpdate({
-        target: [votes.gameId, votes.voterId],
-        set: {
+    const result = await database.transaction(async (transaction) => {
+      const [vote] = await transaction
+        .insert(votes)
+        .values({
+          gameId: gameIdResult.data,
+          voterId: voter.id,
           targetPlayerId: bodyResult.data.targetPlayerId,
-          createdAt: new Date(),
-        },
-      })
-      .returning({
-        voterId: votes.voterId,
-        targetPlayerId: votes.targetPlayerId,
-      })
+        })
+        .onConflictDoUpdate({
+          target: [votes.gameId, votes.voterId],
+          set: {
+            targetPlayerId: bodyResult.data.targetPlayerId,
+            createdAt: new Date(),
+          },
+        })
+        .returning({
+          voterId: votes.voterId,
+          targetPlayerId: votes.targetPlayerId,
+        })
 
-    response.json({ vote })
+      const [action] = await transaction
+        .insert(gameActions)
+        .values({
+          gameId: gameIdResult.data,
+          actorId: voter.id,
+          targetPlayerId: bodyResult.data.targetPlayerId,
+          actionType: 'vote',
+        })
+        .returning({
+          id: gameActions.id,
+          actorId: gameActions.actorId,
+          targetPlayerId: gameActions.targetPlayerId,
+          actionType: gameActions.actionType,
+          createdAt: gameActions.createdAt,
+        })
+
+      return { vote, action }
+    })
+
+    response.json(result)
   } catch (error) {
     next(error)
   }
@@ -281,14 +314,47 @@ gamesRouter.delete('/:gameId/vote', async (request, response, next) => {
       return
     }
 
-    await database
-      .delete(votes)
-      .where(and(
-        eq(votes.gameId, gameIdResult.data),
-        eq(votes.voterId, voter.id),
-      ))
+    const action = await database.transaction(async (transaction) => {
+      const [currentVote] = await transaction
+        .select({ targetPlayerId: votes.targetPlayerId })
+        .from(votes)
+        .where(and(
+          eq(votes.gameId, gameIdResult.data),
+          eq(votes.voterId, voter.id),
+        ))
+        .limit(1)
 
-    response.status(204).end()
+      if (!currentVote) {
+        return null
+      }
+
+      await transaction
+        .delete(votes)
+        .where(and(
+          eq(votes.gameId, gameIdResult.data),
+          eq(votes.voterId, voter.id),
+        ))
+
+      const [createdAction] = await transaction
+        .insert(gameActions)
+        .values({
+          gameId: gameIdResult.data,
+          actorId: voter.id,
+          targetPlayerId: currentVote.targetPlayerId,
+          actionType: 'unvote',
+        })
+        .returning({
+          id: gameActions.id,
+          actorId: gameActions.actorId,
+          targetPlayerId: gameActions.targetPlayerId,
+          actionType: gameActions.actionType,
+          createdAt: gameActions.createdAt,
+        })
+
+      return createdAction
+    })
+
+    response.json({ action })
   } catch (error) {
     next(error)
   }

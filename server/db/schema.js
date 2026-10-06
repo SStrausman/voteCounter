@@ -75,3 +75,20 @@ export const votes = pgTable(
   },
   (table) => [primaryKey({ columns: [table.gameId, table.voterId] })],
 )
+
+export const gameActions = pgTable('game_actions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  gameId: uuid('game_id')
+    .notNull()
+    .references(() => games.id, { onDelete: 'cascade' }),
+  actorId: uuid('actor_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  targetPlayerId: uuid('target_player_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  actionType: varchar('action_type', { length: 20 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})

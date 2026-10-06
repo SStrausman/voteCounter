@@ -35,6 +35,10 @@ if (process.env.NODE_ENV === 'production') {
 app.use((error, _request, response, _next) => {
   const statusCode = error.status ?? 500
 
+  if (statusCode === 500) {
+    console.error(error)
+  }
+
   response.status(statusCode).json({
     error: statusCode === 500 ? 'Internal server error' : error.message,
   })
@@ -44,7 +48,14 @@ const server = app.listen(config.port, () => {
   console.log(`API listening on http://localhost:${config.port}`)
 })
 
+let isShuttingDown = false
+
 async function shutDown() {
+  if (isShuttingDown) {
+    return
+  }
+
+  isShuttingDown = true
   server.close()
   await pool.end()
 }

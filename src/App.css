@@ -521,7 +521,7 @@
 
 .vote-summary li {
   display: grid;
-  grid-template-columns: minmax(120px, auto) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(120px, auto) auto minmax(0, 1fr);
   align-items: center;
   gap: 16px;
   color: var(--muted-text);
@@ -661,6 +661,50 @@
 }
 
 .room-roster-empty {
+  margin: 0;
+  color: var(--muted-text);
+}
+
+.game-action-log {
+  display: grid;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.game-action-log h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.game-action-log ul {
+  display: grid;
+  gap: 8px;
+  max-height: 240px;
+  margin: 0;
+  padding: 0 8px 0 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.game-action-log li {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+  color: var(--muted-text);
+}
+
+.game-action-log time {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.game-action-log strong {
+  color: var(--text);
+}
+
+.game-action-log p {
   margin: 0;
   color: var(--muted-text);
 }
@@ -1012,9 +1056,10 @@
   }
 
   .vote-summary li {
-    grid-template-columns: minmax(64px, 0.7fr) minmax(28px, 1fr) auto;
-    gap: 8px;
-    padding: 6px 0;
+    grid-template-columns: minmax(100px, 0.9fr) auto minmax(0, 1.1fr);
+    grid-template-areas: "target count voters";
+    gap: 6px 12px;
+    padding: 8px 0;
   }
 
   .vote-summary li:first-child {
@@ -1026,36 +1071,41 @@
   }
 
   .vote-target {
+    grid-area: target;
     min-width: 0;
-    padding: 0 8px 0 0;
+    padding: 0 12px 0 0;
     border-right: 1px solid var(--border);
     border-bottom: 0;
+    font-size: 0.75rem;
   }
 
   .vote-target > span:last-child {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .vote-voters {
+    grid-area: voters;
     min-width: 0;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .vote-voters::-webkit-scrollbar {
-    display: none;
   }
 
   .vote-voter {
+    min-width: 0;
+    max-width: 100%;
     flex: 0 0 auto;
+    font-size: 0.75rem;
+  }
+
+  .vote-voter > span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .vote-summary li > strong {
-    justify-self: end;
+    grid-area: count;
+    justify-self: start;
     white-space: nowrap;
     font-size: 0.75rem;
   }

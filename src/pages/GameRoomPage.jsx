@@ -147,12 +147,15 @@ function GameRoomPage() {
 
     try {
       if (isRemovingVote) {
-        await request(`/games/${gameId}/vote`, { method: 'DELETE' })
+        const body = await request(`/games/${gameId}/vote`, { method: 'DELETE' })
         setGame((currentGame) => ({
           ...currentGame,
           votes: currentGame.votes.filter(
             (vote) => vote.voterId !== currentGame.currentUserId,
           ),
+          actions: body.action
+            ? [body.action, ...currentGame.actions]
+            : currentGame.actions,
         }))
       } else {
         const body = await request(`/games/${gameId}/vote`, {
@@ -165,6 +168,7 @@ function GameRoomPage() {
             ...currentGame.votes.filter((vote) => vote.voterId !== body.vote.voterId),
             body.vote,
           ],
+          actions: [body.action, ...currentGame.actions],
         }))
       }
     } catch (requestError) {
@@ -267,11 +271,6 @@ function GameRoomPage() {
                   .filter((vote) => vote.targetPlayerId === playerId)
                   .map((vote) => playersById.get(vote.voterId))
                   .filter(Boolean)
-                const votesFromElimination = Math.max(
-                  0,
-                  votesNeededForElimination - voteCount,
-                )
-
                 return (
                   <li key={playerId}>
                     <span className="vote-target">
@@ -284,6 +283,9 @@ function GameRoomPage() {
                       )}
                       <span>{playerNames.get(playerId)}</span>
                     </span>
+                    <strong>
+                      {voteCount} {voteCount === 1 ? 'vote' : 'votes'}
+                    </strong>
                     <span className="vote-voters">
                       {votingPlayers.map((player) => (
                         <span className="vote-voter" key={player.id}>
@@ -298,10 +300,6 @@ function GameRoomPage() {
                         </span>
                       ))}
                     </span>
-                    <strong>
-                      {voteCount} {voteCount === 1 ? 'vote' : 'votes'} ({votesFromElimination}{' '}
-                      {votesFromElimination === 1 ? 'vote' : 'votes'} from elimination)
-                    </strong>
                   </li>
                 )
               })}
@@ -336,6 +334,33 @@ function GameRoomPage() {
           onVote={handleVote}
         />
       </div>
+
+      <section className="game-action-log">
+        <h2>Game log</h2>
+        {game.actions.length > 0 ? (
+          <ul>
+            {game.actions.map((action) => (
+              <li key={action.id}>
+                <time dateTime={action.createdAt}>
+                  {new Date(action.createdAt).toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}
+                </time>
+                <span>
+                  <strong>{playerNames.get(action.actorId) || 'Unknown player'}</strong>{' '}
+                  {action.actionType === 'vote' ? 'voted' : 'unvoted'}{' '}
+                  <strong>
+                    {playerNames.get(action.targetPlayerId) || 'Unknown player'}
+                  </strong>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No game actions yet.</p>
+        )}
+      </section>
     </section>
   )
 }
