@@ -58,6 +58,7 @@ async function shutDown() {
   isShuttingDown = true
   server.close()
   await pool.end()
+  process.exit(0)
 }
 
 process.on('SIGINT', shutDown)

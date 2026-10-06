@@ -584,7 +584,7 @@
 
 .room-roster ul {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 12px;
   margin: 0;
   padding: 0;
@@ -592,7 +592,8 @@
 }
 
 .room-roster li {
-  display: flex;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
   min-width: 0;
@@ -619,15 +620,11 @@
 
 .room-roster strong {
   min-width: 0;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .room-player-actions {
   display: flex;
-  flex: 0 0 auto;
   gap: 6px;
 }
 
@@ -1126,6 +1123,10 @@
   .room-roster li > span {
     width: 32px;
     height: 32px;
+  }
+
+  .room-roster strong {
+    font-size: 0.75rem;
   }
 
   .room-player-actions {

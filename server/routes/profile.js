@@ -7,13 +7,13 @@ import { gameMembers, games, users } from '../db/schema.js'
 import { findOrCreateUser } from '../db/users.js'
 
 const profileSchema = z.object({
-  displayName: z.string().trim().min(1).max(80),
+  displayName: z.string().trim().min(1).max(15),
   profilePictureUrl: z.union([z.string().url(), z.literal('')]),
   theme: z.enum(['light', 'dark']),
 })
 
 const initializeProfileSchema = z.object({
-  displayName: z.string().trim().min(1).max(80),
+  displayName: z.string().trim().min(1).max(15),
   profilePictureUrl: z.union([z.string().url(), z.literal('')]),
 })
 

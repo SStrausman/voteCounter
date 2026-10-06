@@ -729,7 +729,20 @@ gamesRouter.patch('/:gameId/players/:playerId/state', async (request, response, 
       return
     }
 
-    const updatedPlayer = await database.transaction(async (transaction) => {
+    const result = await database.transaction(async (transaction) => {
+      const [currentPlayer] = await transaction
+        .select({ isAlive: gameMembers.isAlive })
+        .from(gameMembers)
+        .where(and(
+          eq(gameMembers.gameId, paramsResult.data.gameId),
+          eq(gameMembers.userId, paramsResult.data.playerId),
+        ))
+        .limit(1)
+
+      if (!currentPlayer) {
+        return { player: null, action: null }
+      }
+
       const [player] = await transaction
         .update(gameMembers)
         .set({ isAlive: bodyResult.data.isAlive })
@@ -739,24 +752,44 @@ gamesRouter.patch('/:gameId/players/:playerId/state', async (request, response, 
         ))
         .returning({ isAlive: gameMembers.isAlive })
 
-      if (player && !player.isAlive) {
+      let action = null
+
+      if (currentPlayer.isAlive && !player.isAlive) {
         await transaction
           .delete(votes)
           .where(and(
             eq(votes.gameId, paramsResult.data.gameId),
             eq(votes.targetPlayerId, paramsResult.data.playerId),
           ))
+
+        const [createdAction] = await transaction
+          .insert(gameActions)
+          .values({
+            gameId: paramsResult.data.gameId,
+            actorId: moderator.id,
+            targetPlayerId: paramsResult.data.playerId,
+            actionType: 'died',
+          })
+          .returning({
+            id: gameActions.id,
+            actorId: gameActions.actorId,
+            targetPlayerId: gameActions.targetPlayerId,
+            actionType: gameActions.actionType,
+            createdAt: gameActions.createdAt,
+          })
+
+        action = createdAction
       }
 
-      return player
+      return { player, action }
     })
 
-    if (!updatedPlayer) {
+    if (!result.player) {
       response.status(404).json({ error: 'Player not found' })
       return
     }
 
-    response.json({ isAlive: updatedPlayer.isAlive })
+    response.json({ isAlive: result.player.isAlive, action: result.action })
   } catch (error) {
     next(error)
   }

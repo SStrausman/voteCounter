@@ -129,6 +129,9 @@ function GameRoomPage() {
         votes: body.isAlive
           ? currentGame.votes
           : currentGame.votes.filter((vote) => vote.targetPlayerId !== player.id),
+        actions: body.action
+          ? [body.action, ...currentGame.actions]
+          : currentGame.actions,
       }))
     } catch (requestError) {
       if (requestError.message !== 'Internal server error') {
@@ -348,11 +351,24 @@ function GameRoomPage() {
                   })}
                 </time>
                 <span>
-                  <strong>{playerNames.get(action.actorId) || 'Unknown player'}</strong>{' '}
-                  {action.actionType === 'vote' ? 'voted' : 'unvoted'}{' '}
-                  <strong>
-                    {playerNames.get(action.targetPlayerId) || 'Unknown player'}
-                  </strong>
+                  {action.actionType === 'died' ? (
+                    <>
+                      <strong>
+                        {playerNames.get(action.targetPlayerId) || 'Unknown player'}
+                      </strong>{' '}
+                      has died
+                    </>
+                  ) : (
+                    <>
+                      <strong>
+                        {playerNames.get(action.actorId) || 'Unknown player'}
+                      </strong>{' '}
+                      {action.actionType === 'vote' ? 'voted' : 'unvoted'}{' '}
+                      <strong>
+                        {playerNames.get(action.targetPlayerId) || 'Unknown player'}
+                      </strong>
+                    </>
+                  )}
                 </span>
               </li>
             ))}

@@ -161,7 +161,7 @@ function ProfilePage() {
             name="displayName"
             type="text"
             value={profile.displayName}
-            maxLength={80}
+            maxLength={15}
             required
             onChange={handleChange}
           />
