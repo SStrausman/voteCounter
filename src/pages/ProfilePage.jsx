@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
+import { useNavigate } from 'react-router-dom'
 import { useApi } from '../api/useApi.js'
 import { useTheme } from '../theme/ThemeContext.jsx'
 
@@ -11,10 +12,11 @@ const emptyProfile = {
   gamesModerated: 0,
 }
 
-function ProfilePage() {
-  const { isAuthenticated, isLoading: isAuthLoading, loginWithRedirect, user } = useAuth0()
+function ProfilePage({ isProfileSetup = false, onProfileSaved }) {
+  const { isAuthenticated, isLoading: isAuthLoading, loginWithRedirect } = useAuth0()
   const { request } = useApi()
   const { setTheme } = useTheme()
+  const navigate = useNavigate()
   const [profile, setProfile] = useState(emptyProfile)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -37,7 +39,7 @@ function ProfilePage() {
         if (isActive) {
           setProfile({
             ...body.profile,
-            displayName: body.profile.displayName ?? user?.name ?? '',
+            displayName: body.profile.displayName ?? '',
             profilePictureUrl: body.profile.profilePictureUrl ?? '',
           })
           setTheme(body.profile.theme)
@@ -58,7 +60,7 @@ function ProfilePage() {
     return () => {
       isActive = false
     }
-  }, [isAuthenticated, request, setTheme, user?.name])
+  }, [isAuthenticated, request, setTheme])
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -90,6 +92,11 @@ function ProfilePage() {
         profilePictureUrl: body.profile.profilePictureUrl ?? '',
       })
       setSaved(true)
+      onProfileSaved?.()
+
+      if (isProfileSetup) {
+        navigate('/', { replace: true })
+      }
     } catch (requestError) {
       setError(requestError.message)
     } finally {
@@ -138,8 +145,10 @@ function ProfilePage() {
           )}
         </div>
         <div>
-          <p className="profile-eyebrow">Account</p>
-          <h1>{profile.displayName || 'Your profile'}</h1>
+          <p className="profile-eyebrow">{isProfileSetup ? 'Welcome' : 'Account'}</p>
+          <h1>
+            {isProfileSetup ? 'Choose a display name' : profile.displayName || 'Your profile'}
+          </h1>
         </div>
         <div className="profile-stats">
           <div className="profile-stat">

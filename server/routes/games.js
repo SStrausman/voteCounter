@@ -42,6 +42,7 @@ gamesRouter.get('/', async (request, response, next) => {
         moderatorPictureUrl: users.profilePictureUrl,
         joinPassword: games.joinPassword,
         startedAt: games.startedAt,
+        completedAt: games.completedAt,
       })
       .from(games)
       .innerJoin(users, eq(games.moderatorId, users.id))
@@ -74,6 +75,7 @@ gamesRouter.get('/', async (request, response, next) => {
           name: game.name,
           totalPlayers: game.totalPlayers,
           startedAt: game.startedAt,
+          completedAt: game.completedAt,
           createdAt: game.createdAt,
           moderator: {
             id: game.moderatorId,
@@ -110,6 +112,7 @@ gamesRouter.get('/:gameId/room', async (request, response, next) => {
         id: games.id,
         name: games.name,
         startedAt: games.startedAt,
+        completedAt: games.completedAt,
         moderatorId: games.moderatorId,
         moderatorName: users.displayName,
         moderatorPictureUrl: users.profilePictureUrl,
@@ -173,6 +176,7 @@ gamesRouter.get('/:gameId/room', async (request, response, next) => {
         id: game.id,
         name: game.name,
         startedAt: game.startedAt,
+        completedAt: game.completedAt,
         moderator: {
           id: game.moderatorId,
           displayName: game.moderatorName,
@@ -203,7 +207,10 @@ gamesRouter.put('/:gameId/vote', async (request, response, next) => {
   try {
     const voter = await findOrCreateUser(database, request.auth.payload.sub)
     const [game] = await database
-      .select({ startedAt: games.startedAt })
+      .select({
+        startedAt: games.startedAt,
+        completedAt: games.completedAt,
+      })
       .from(games)
       .where(eq(games.id, gameIdResult.data))
       .limit(1)
@@ -215,6 +222,11 @@ gamesRouter.put('/:gameId/vote', async (request, response, next) => {
 
     if (!game.startedAt) {
       response.status(409).json({ error: 'Game has not started' })
+      return
+    }
+
+    if (game.completedAt) {
+      response.status(409).json({ error: 'Game has been completed' })
       return
     }
 
@@ -300,6 +312,22 @@ gamesRouter.delete('/:gameId/vote', async (request, response, next) => {
 
   try {
     const voter = await findOrCreateUser(database, request.auth.payload.sub)
+    const [game] = await database
+      .select({ completedAt: games.completedAt })
+      .from(games)
+      .where(eq(games.id, gameIdResult.data))
+      .limit(1)
+
+    if (!game) {
+      response.status(404).json({ error: 'Game not found' })
+      return
+    }
+
+    if (game.completedAt) {
+      response.status(409).json({ error: 'Game has been completed' })
+      return
+    }
+
     const [membership] = await database
       .select({ userId: gameMembers.userId })
       .from(gameMembers)
@@ -371,7 +399,10 @@ gamesRouter.delete('/:gameId/votes', async (request, response, next) => {
   try {
     const moderator = await findOrCreateUser(database, request.auth.payload.sub)
     const [game] = await database
-      .select({ moderatorId: games.moderatorId })
+      .select({
+        moderatorId: games.moderatorId,
+        completedAt: games.completedAt,
+      })
       .from(games)
       .where(eq(games.id, gameIdResult.data))
       .limit(1)
@@ -383,6 +414,11 @@ gamesRouter.delete('/:gameId/votes', async (request, response, next) => {
 
     if (game.moderatorId !== moderator.id) {
       response.status(403).json({ error: 'Only the moderator can clear votes' })
+      return
+    }
+
+    if (game.completedAt) {
+      response.status(409).json({ error: 'Game has been completed' })
       return
     }
 
@@ -452,6 +488,7 @@ gamesRouter.post('/:gameId/start', async (request, response, next) => {
         moderatorId: games.moderatorId,
         totalPlayers: games.totalPlayers,
         startedAt: games.startedAt,
+        completedAt: games.completedAt,
       })
       .from(games)
       .where(eq(games.id, gameIdResult.data))
@@ -464,6 +501,11 @@ gamesRouter.post('/:gameId/start', async (request, response, next) => {
 
     if (game.moderatorId !== moderator.id) {
       response.status(403).json({ error: 'Only the moderator can start the game' })
+      return
+    }
+
+    if (game.completedAt) {
+      response.status(409).json({ error: 'Game has been completed' })
       return
     }
 
@@ -494,6 +536,58 @@ gamesRouter.post('/:gameId/start', async (request, response, next) => {
   }
 })
 
+gamesRouter.post('/:gameId/complete', async (request, response, next) => {
+  const gameIdResult = z.string().uuid().safeParse(request.params.gameId)
+
+  if (!gameIdResult.success) {
+    response.status(400).json({ error: 'Invalid game' })
+    return
+  }
+
+  try {
+    const moderator = await findOrCreateUser(database, request.auth.payload.sub)
+    const [game] = await database
+      .select({
+        moderatorId: games.moderatorId,
+        startedAt: games.startedAt,
+        completedAt: games.completedAt,
+      })
+      .from(games)
+      .where(eq(games.id, gameIdResult.data))
+      .limit(1)
+
+    if (!game) {
+      response.status(404).json({ error: 'Game not found' })
+      return
+    }
+
+    if (game.moderatorId !== moderator.id) {
+      response.status(403).json({ error: 'Only the moderator can complete the game' })
+      return
+    }
+
+    if (!game.startedAt) {
+      response.status(409).json({ error: 'Game has not started' })
+      return
+    }
+
+    if (game.completedAt) {
+      response.json({ completedAt: game.completedAt })
+      return
+    }
+
+    const [completedGame] = await database
+      .update(games)
+      .set({ completedAt: new Date() })
+      .where(eq(games.id, gameIdResult.data))
+      .returning({ completedAt: games.completedAt })
+
+    response.json({ completedAt: completedGame.completedAt })
+  } catch (error) {
+    next(error)
+  }
+})
+
 gamesRouter.delete('/:gameId/start', async (request, response, next) => {
   const gameIdResult = z.string().uuid().safeParse(request.params.gameId)
 
@@ -505,7 +599,10 @@ gamesRouter.delete('/:gameId/start', async (request, response, next) => {
   try {
     const moderator = await findOrCreateUser(database, request.auth.payload.sub)
     const [game] = await database
-      .select({ moderatorId: games.moderatorId })
+      .select({
+        moderatorId: games.moderatorId,
+        completedAt: games.completedAt,
+      })
       .from(games)
       .where(eq(games.id, gameIdResult.data))
       .limit(1)
@@ -517,6 +614,11 @@ gamesRouter.delete('/:gameId/start', async (request, response, next) => {
 
     if (game.moderatorId !== moderator.id) {
       response.status(403).json({ error: 'Only the moderator can undo game start' })
+      return
+    }
+
+    if (game.completedAt) {
+      response.status(409).json({ error: 'A completed game cannot be reset' })
       return
     }
 
@@ -611,7 +713,10 @@ gamesRouter.delete('/:gameId', async (request, response, next) => {
   try {
     const moderator = await findOrCreateUser(database, request.auth.payload.sub)
     const [game] = await database
-      .select({ moderatorId: games.moderatorId })
+      .select({
+        moderatorId: games.moderatorId,
+        completedAt: games.completedAt,
+      })
       .from(games)
       .where(eq(games.id, gameIdResult.data))
       .limit(1)
@@ -726,6 +831,11 @@ gamesRouter.patch('/:gameId/players/:playerId/state', async (request, response, 
 
     if (game.moderatorId !== moderator.id) {
       response.status(403).json({ error: 'Only the moderator can update player state' })
+      return
+    }
+
+    if (game.completedAt) {
+      response.status(409).json({ error: 'Game has been completed' })
       return
     }
 

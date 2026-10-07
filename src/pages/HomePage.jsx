@@ -217,6 +217,24 @@ function HomePage() {
     )
   }
 
+  const gameSections = [
+    {
+      title: 'Signups',
+      emptyMessage: 'No games are accepting signups.',
+      games: games.filter((game) => !game.startedAt),
+    },
+    {
+      title: 'In progress',
+      emptyMessage: 'No games are in progress.',
+      games: games.filter((game) => game.startedAt && !game.completedAt),
+    },
+    {
+      title: 'Completed',
+      emptyMessage: 'No games have been completed.',
+      games: games.filter((game) => game.completedAt),
+    },
+  ]
+
   return (
     <section className="games-page">
       <header className="page-heading">
@@ -233,8 +251,17 @@ function HomePage() {
         </div>
       )}
 
-      <div className="game-list">
-        {games.map((game) => (
+      {games.length > 0 && (
+        <div className="game-sections">
+          {gameSections.map((section) => (
+            <section className="game-section" key={section.title}>
+              <header className="game-section-heading">
+                <h2>{section.title}</h2>
+                <span>{section.games.length}</span>
+              </header>
+              {section.games.length > 0 ? (
+                <div className="game-list">
+                  {section.games.map((game) => (
           <article className="game-card" key={game.id}>
             <div className="game-card-header">
               <h2>{game.name}</h2>
@@ -263,12 +290,16 @@ function HomePage() {
                     <dt>Joined</dt>
                     <dd>{game.players.length}/{game.totalPlayers}</dd>
                   </div>
+                  <div>
+                    <dt>Status</dt>
+                    <dd>{game.completedAt ? 'Completed' : game.startedAt ? 'In progress' : 'Waiting'}</dd>
+                  </div>
                 </dl>
                 <div className="game-join">
                   {game.startedAt && (game.isPlayer || game.isModerator) && (
                     <Link className="room-link" to={`/games/${game.id}`}>Enter game room</Link>
                   )}
-                  {game.startedAt && game.isModerator && (
+                  {game.startedAt && !game.completedAt && game.isModerator && (
                     <button
                       className="undo-start-button"
                       type="button"
@@ -367,8 +398,15 @@ function HomePage() {
               </section>
             </div>
           </article>
-        ))}
-      </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="game-section-empty">{section.emptyMessage}</p>
+              )}
+            </section>
+          ))}
+        </div>
+      )}
     </section>
   )
 }

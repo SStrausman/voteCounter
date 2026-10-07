@@ -12,11 +12,6 @@ const profileSchema = z.object({
   theme: z.enum(['light', 'dark']),
 })
 
-const initializeProfileSchema = z.object({
-  displayName: z.string().trim().min(1).max(15),
-  profilePictureUrl: z.union([z.string().url(), z.literal('')]),
-})
-
 async function getGamesPlayed(userId) {
   const [result] = await database
     .select({ gamesPlayed: count() })
@@ -56,33 +51,6 @@ profileRouter.get('/', async (request, response, next) => {
         gamesModerated,
       },
     })
-  } catch (error) {
-    next(error)
-  }
-})
-
-profileRouter.post('/initialize', async (request, response, next) => {
-  const result = initializeProfileSchema.safeParse(request.body)
-
-  if (!result.success) {
-    response.status(400).json({ error: 'Invalid profile' })
-    return
-  }
-
-  try {
-    const user = await findOrCreateUser(database, request.auth.payload.sub)
-
-    if (!user.displayName) {
-      await database
-        .update(users)
-        .set({
-          displayName: result.data.displayName,
-          profilePictureUrl: result.data.profilePictureUrl || null,
-        })
-        .where(eq(users.id, user.id))
-    }
-
-    response.status(204).end()
   } catch (error) {
     next(error)
   }

@@ -80,6 +80,22 @@
   text-decoration: none;
 }
 
+.header-profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-profile-avatar {
+  display: block;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .auth-button {
   padding: 0;
   border: 0;
@@ -155,11 +171,46 @@
   background: var(--accent-hover);
 }
 
+.game-sections {
+  display: grid;
+  gap: 40px;
+  padding-top: 32px;
+}
+
+.game-section {
+  display: grid;
+  gap: 16px;
+}
+
+.game-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.game-section-heading h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.game-section-heading span {
+  color: var(--muted-text);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.game-section-empty {
+  margin: 0;
+  color: var(--muted-text);
+}
+
 .game-list {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
-  padding-top: 32px;
 }
 
 .game-card {
@@ -455,6 +506,34 @@
 .game-room-error a {
   color: var(--accent);
   font-weight: 700;
+}
+
+.complete-game-button {
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--button-text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.complete-game-button:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.complete-game-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.game-status {
+  color: var(--muted-text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .room-rosters {

@@ -34,6 +34,7 @@ export const games = pgTable('games', {
   joinPassword: varchar('join_password', { length: 120 }),
   totalPlayers: integer('total_players').notNull(),
   startedAt: timestamp('started_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

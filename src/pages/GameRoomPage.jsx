@@ -73,6 +73,7 @@ function GameRoomPage() {
   const [actionError, setActionError] = useState('')
   const [votingPlayerId, setVotingPlayerId] = useState(null)
   const [isClearingVotes, setIsClearingVotes] = useState(false)
+  const [isCompletingGame, setIsCompletingGame] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -199,6 +200,29 @@ function GameRoomPage() {
     }
   }
 
+  const handleCompleteGame = async () => {
+    if (!window.confirm(`Mark ${game.name} as completed?`)) {
+      return
+    }
+
+    setActionError('')
+    setIsCompletingGame(true)
+
+    try {
+      const body = await request(`/games/${gameId}/complete`, { method: 'POST' })
+      setGame((currentGame) => ({
+        ...currentGame,
+        completedAt: body.completedAt,
+      }))
+    } catch (requestError) {
+      if (requestError.message !== 'Internal server error') {
+        setActionError(requestError.message)
+      }
+    } finally {
+      setIsCompletingGame(false)
+    }
+  }
+
   if (isAuthLoading || isLoading) {
     return <p className="page-status">Loading game...</p>
   }
@@ -246,6 +270,18 @@ function GameRoomPage() {
         <div>
           <h1>{game.name}</h1>
         </div>
+        {game.completedAt ? (
+          <span className="game-status">Completed</span>
+        ) : game.isModerator ? (
+          <button
+            className="complete-game-button"
+            type="button"
+            disabled={isCompletingGame}
+            onClick={handleCompleteGame}
+          >
+            {isCompletingGame ? 'Completing...' : 'Complete game'}
+          </button>
+        ) : null}
       </header>
 
       {actionError && <p className="form-message form-error" role="alert">{actionError}</p>}
@@ -253,7 +289,7 @@ function GameRoomPage() {
       <section className="room-voting">
         <div className="room-section-heading">
           <strong>{votesNeededForElimination} votes needed for elimination</strong>
-          {game.isModerator && (
+          {game.isModerator && !game.completedAt && (
             <button
               className="clear-votes-button"
               type="button"
@@ -317,8 +353,8 @@ function GameRoomPage() {
         <PlayerRoster
           title="Alive players"
           players={alivePlayers}
-          isModerator={game.isModerator}
-          isPlayer={game.isPlayer}
+          isModerator={game.isModerator && !game.completedAt}
+          isPlayer={game.isPlayer && !game.completedAt}
           isUpdating={updatingPlayerId}
           currentVoteTargetId={currentVoteTargetId}
           votingPlayerId={votingPlayerId}
@@ -328,8 +364,8 @@ function GameRoomPage() {
         <PlayerRoster
           title="Dead players"
           players={deadPlayers}
-          isModerator={game.isModerator}
-          isPlayer={game.isPlayer}
+          isModerator={game.isModerator && !game.completedAt}
+          isPlayer={game.isPlayer && !game.completedAt}
           isUpdating={updatingPlayerId}
           currentVoteTargetId={currentVoteTargetId}
           votingPlayerId={votingPlayerId}

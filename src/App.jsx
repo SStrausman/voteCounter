@@ -1,7 +1,7 @@
 import './App.css'
 import { useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useApi } from './api/useApi.js'
 import Header from './components/Header.jsx'
 import CreateGamePage from './pages/CreateGamePage.jsx'
@@ -10,54 +10,53 @@ import HomePage from './pages/HomePage.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
 
 function ProfileInitializer({ children }) {
-  const { isAuthenticated, user } = useAuth0()
+  const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth0()
   const { request } = useApi()
-  const [initializedUserId, setInitializedUserId] = useState(null)
+  const location = useLocation()
+  const [profileStatus, setProfileStatus] = useState('loading')
 
   useEffect(() => {
     if (!isAuthenticated || !user?.sub) {
-      return
-    }
-
-    const displayName = user.name || user.email || user.nickname
-
-    if (!displayName) {
-      setInitializedUserId(user.sub)
+      setProfileStatus('ready')
       return
     }
 
     let isActive = true
 
-    async function initializeProfile() {
+    async function loadProfileStatus() {
       try {
-        await request('/profile/initialize', {
-          method: 'POST',
-          body: JSON.stringify({
-            displayName,
-            profilePictureUrl: user.picture || '',
-          }),
-        })
-      } catch {
-        // Profile initialization can retry on the next authenticated page load.
-      } finally {
+        const body = await request('/profile')
+
         if (isActive) {
-          setInitializedUserId(user.sub)
+          setProfileStatus(body.profile.displayName ? 'ready' : 'required')
+        }
+      } catch {
+        if (isActive) {
+          setProfileStatus('ready')
         }
       }
     }
 
-    initializeProfile()
+    setProfileStatus('loading')
+    loadProfileStatus()
 
     return () => {
       isActive = false
     }
-  }, [isAuthenticated, request, user?.email, user?.name, user?.nickname, user?.picture, user?.sub])
+  }, [isAuthenticated, request, user?.sub])
 
-  if (isAuthenticated && user?.sub && initializedUserId !== user.sub) {
+  if (isAuthLoading || (isAuthenticated && profileStatus === 'loading')) {
     return <p className="page-status">Loading...</p>
   }
 
-  return children
+  if (isAuthenticated && profileStatus === 'required' && location.pathname !== '/profile') {
+    return <Navigate to="/profile" replace />
+  }
+
+  return children({
+    isProfileSetup: profileStatus === 'required',
+    markProfileReady: () => setProfileStatus('ready'),
+  })
 }
 
 function App() {
@@ -66,13 +65,23 @@ function App() {
       <Header />
       <main>
         <ProfileInitializer>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/games" element={<HomePage />} />
-            <Route path="/games/create" element={<CreateGamePage />} />
-            <Route path="/games/:gameId" element={<GameRoomPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-          </Routes>
+          {({ isProfileSetup, markProfileReady }) => (
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/games" element={<HomePage />} />
+              <Route path="/games/create" element={<CreateGamePage />} />
+              <Route path="/games/:gameId" element={<GameRoomPage />} />
+              <Route
+                path="/profile"
+                element={(
+                  <ProfilePage
+                    isProfileSetup={isProfileSetup}
+                    onProfileSaved={markProfileReady}
+                  />
+                )}
+              />
+            </Routes>
+          )}
         </ProfileInitializer>
       </main>
     </div>
