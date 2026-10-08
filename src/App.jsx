@@ -8,6 +8,7 @@ import CreateGamePage from './pages/CreateGamePage.jsx'
 import GameRoomPage from './pages/GameRoomPage.jsx'
 import HomePage from './pages/HomePage.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
+import RolesPage from './pages/RolesPage.jsx'
 
 function ProfileInitializer({ children }) {
   const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth0()
@@ -71,6 +72,7 @@ function App() {
               <Route path="/games" element={<HomePage />} />
               <Route path="/games/create" element={<CreateGamePage />} />
               <Route path="/games/:gameId" element={<GameRoomPage />} />
+              <Route path="/roles" element={<RolesPage />} />
               <Route
                 path="/profile"
                 element={(

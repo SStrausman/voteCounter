@@ -5,6 +5,7 @@ import { config } from './config.js'
 import { pool } from './db/client.js'
 import { gamesRouter } from './routes/games.js'
 import { profileRouter } from './routes/profile.js'
+import { rolesRouter } from './routes/roles.js'
 
 const app = express()
 
@@ -17,6 +18,7 @@ app.get('/api/health', (_request, response) => {
 
 app.use('/api/games', gamesRouter)
 app.use('/api/profile', profileRouter)
+app.use('/api/roles', rolesRouter)
 
 if (process.env.NODE_ENV === 'production') {
   const clientDirectory = fileURLToPath(new URL('../dist', import.meta.url))

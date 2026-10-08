@@ -1,0 +1,1 @@
+ALTER TABLE "roles" ADD COLUMN "allows_partners" boolean DEFAULT false NOT NULL;

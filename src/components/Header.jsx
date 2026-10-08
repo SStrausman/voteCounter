@@ -40,6 +40,7 @@ function Header() {
             <span>Profile</span>
           </Link>
         )}
+        {isAuthenticated && <Link to="/roles">Roles</Link>}
         <button
           className="auth-button"
           type="button"

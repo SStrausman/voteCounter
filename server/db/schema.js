@@ -25,6 +25,18 @@ export const users = pgTable(
   (table) => [uniqueIndex('users_auth0_user_id_idx').on(table.auth0UserId)],
 )
 
+export const roles = pgTable('roles', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  description: text('description').notNull(),
+  winCondition: text('win_condition').notNull(),
+  alignment: text('alignment').notNull(),
+  allowsPartners: boolean('allows_partners').default(false).notNull(),
+  createdBy: uuid('created_by').references(() => users.id, {
+    onDelete: 'cascade',
+  }),
+})
+
 export const games = pgTable('games', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 120 }).notNull(),
@@ -40,6 +52,20 @@ export const games = pgTable('games', {
     .notNull(),
 })
 
+export const gameRoles = pgTable(
+  'game_roles',
+  {
+    gameId: uuid('game_id')
+      .notNull()
+      .references(() => games.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull(),
+    roleId: uuid('role_id')
+      .notNull()
+      .references(() => roles.id),
+  },
+  (table) => [primaryKey({ columns: [table.gameId, table.position] })],
+)
+
 export const gameMembers = pgTable(
   'game_members',
   {
@@ -50,6 +76,8 @@ export const gameMembers = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     role: varchar('role', { length: 20 }).default('member').notNull(),
+    gameRole: uuid('game_role').references(() => roles.id),
+    partners: uuid('partners').array(),
     isAlive: boolean('is_alive').default(true).notNull(),
     joinedAt: timestamp('joined_at', { withTimezone: true })
       .defaultNow()

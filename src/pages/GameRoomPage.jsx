@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { Link, useParams } from 'react-router-dom'
 import { useApi } from '../api/useApi.js'
@@ -11,6 +11,7 @@ function PlayerRoster({
   onToggle,
   onVote,
   players,
+  showRoles,
   title,
   votingPlayerId,
 }) {
@@ -24,11 +25,20 @@ function PlayerRoster({
               {player.profilePictureUrl ? (
                 <img src={player.profilePictureUrl} alt="" />
               ) : (
-                <span aria-hidden="true">
+                <span className="room-player-avatar" aria-hidden="true">
                   {(player.displayName || 'Unnamed player').charAt(0).toUpperCase()}
                 </span>
               )}
-              <strong>{player.displayName || 'Unnamed player'}</strong>
+              <span className="room-player-identity">
+                <strong>{player.displayName || 'Unnamed player'}</strong>
+                {showRoles && (
+                  <small>
+                    {player.alignment && player.roleName
+                      ? `${player.alignment} - ${player.roleName}`
+                      : 'No role assigned'}
+                  </small>
+                )}
+              </span>
               {(isModerator || (isPlayer && player.isAlive)) && (
                 <div className="room-player-actions">
                   {isPlayer && player.isAlive && (
@@ -74,6 +84,7 @@ function GameRoomPage() {
   const [votingPlayerId, setVotingPlayerId] = useState(null)
   const [isClearingVotes, setIsClearingVotes] = useState(false)
   const [isCompletingGame, setIsCompletingGame] = useState(false)
+  const roleCardDialogRef = useRef(null)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -270,18 +281,29 @@ function GameRoomPage() {
         <div>
           <h1>{game.name}</h1>
         </div>
-        {game.completedAt ? (
-          <span className="game-status">Completed</span>
-        ) : game.isModerator ? (
-          <button
-            className="complete-game-button"
-            type="button"
-            disabled={isCompletingGame}
-            onClick={handleCompleteGame}
-          >
-            {isCompletingGame ? 'Completing...' : 'Complete game'}
-          </button>
-        ) : null}
+        <div className="game-room-actions">
+          {game.currentPlayerRole && (
+            <button
+              className="view-role-button"
+              type="button"
+              onClick={() => roleCardDialogRef.current?.showModal()}
+            >
+              View role card
+            </button>
+          )}
+          {game.completedAt ? (
+            <span className="game-status">Completed</span>
+          ) : game.isModerator ? (
+            <button
+              className="complete-game-button"
+              type="button"
+              disabled={isCompletingGame}
+              onClick={handleCompleteGame}
+            >
+              {isCompletingGame ? 'Completing...' : 'Complete game'}
+            </button>
+          ) : null}
+        </div>
       </header>
 
       {actionError && <p className="form-message form-error" role="alert">{actionError}</p>}
@@ -355,6 +377,7 @@ function GameRoomPage() {
           players={alivePlayers}
           isModerator={game.isModerator && !game.completedAt}
           isPlayer={game.isPlayer && !game.completedAt}
+          showRoles={game.isModerator}
           isUpdating={updatingPlayerId}
           currentVoteTargetId={currentVoteTargetId}
           votingPlayerId={votingPlayerId}
@@ -366,6 +389,7 @@ function GameRoomPage() {
           players={deadPlayers}
           isModerator={game.isModerator && !game.completedAt}
           isPlayer={game.isPlayer && !game.completedAt}
+          showRoles={game.isModerator}
           isUpdating={updatingPlayerId}
           currentVoteTargetId={currentVoteTargetId}
           votingPlayerId={votingPlayerId}
@@ -413,6 +437,43 @@ function GameRoomPage() {
           <p>No game actions yet.</p>
         )}
       </section>
+
+      <dialog
+        ref={roleCardDialogRef}
+        className="role-dialog role-card-dialog"
+        aria-labelledby="role-card-title"
+      >
+        {game.currentPlayerRole && (
+          <div className="role-card-content">
+            <div className="role-dialog-heading">
+              <h2 id="role-card-title">
+                {game.currentPlayerRole.alignment} {game.currentPlayerRole.name}
+              </h2>
+              <button
+                className="dialog-close"
+                type="button"
+                aria-label="Close"
+                onClick={() => roleCardDialogRef.current?.close()}
+              >
+                &times;
+              </button>
+            </div>
+
+            <p className="role-card-description">{game.currentPlayerRole.description}</p>
+
+            <div className="role-card-win-condition">
+              <strong>Win condition</strong>
+              <p>{game.currentPlayerRole.winCondition}</p>
+            </div>
+
+            {game.currentPlayerRole.partnerNames.length > 0 && (
+              <p className="role-card-partners">
+                You are partnered with {game.currentPlayerRole.partnerNames.join(', ')}.
+              </p>
+            )}
+          </div>
+        )}
+      </dialog>
     </section>
   )
 }

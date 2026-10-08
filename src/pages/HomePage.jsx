@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { Link } from 'react-router-dom'
 import { useApi } from '../api/useApi.js'
@@ -41,6 +41,18 @@ function HomePage() {
   const [undoingStartGameId, setUndoingStartGameId] = useState(null)
   const [removingPlayerKey, setRemovingPlayerKey] = useState(null)
   const [gameErrors, setGameErrors] = useState({})
+  const [partnerSetup, setPartnerSetup] = useState(null)
+  const [selectedPartnerIds, setSelectedPartnerIds] = useState([])
+  const [partnerGroups, setPartnerGroups] = useState([])
+  const [partnerError, setPartnerError] = useState('')
+  const [isSavingPartners, setIsSavingPartners] = useState(false)
+  const [editingGame, setEditingGame] = useState(null)
+  const [editAvailableRoles, setEditAvailableRoles] = useState([])
+  const [loadingEditGameId, setLoadingEditGameId] = useState(null)
+  const [isSavingGame, setIsSavingGame] = useState(false)
+  const [editError, setEditError] = useState('')
+  const partnerDialogRef = useRef(null)
+  const editGameDialogRef = useRef(null)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -167,12 +179,143 @@ function HomePage() {
     }
   }
 
+  const handleEditGame = async (game) => {
+    setLoadingEditGameId(game.id)
+    setEditError('')
+
+    try {
+      const [settingsBody, rolesBody] = await Promise.all([
+        request(`/games/${game.id}/settings`),
+        request('/roles'),
+      ])
+      const vanillaTownie = rolesBody.defaultRoles.find((role) => role.name === 'Vanilla Townie')
+      const availableRoles = [...rolesBody.defaultRoles, ...rolesBody.myRoles].sort(
+        (first, second) => (
+          first.alignment.localeCompare(second.alignment)
+          || first.name.localeCompare(second.name)
+        ),
+      )
+
+      setEditAvailableRoles(availableRoles)
+      setEditingGame({
+        id: game.id,
+        name: settingsBody.settings.name,
+        password: settingsBody.settings.password,
+        totalPlayers: String(settingsBody.settings.totalPlayers),
+        joinedPlayers: settingsBody.settings.joinedPlayers,
+        addRoles: settingsBody.settings.roleIds.length > 0,
+        roleIds: settingsBody.settings.roleIds,
+        vanillaTownieId: vanillaTownie?.id ?? '',
+      })
+      editGameDialogRef.current?.showModal()
+    } catch (requestError) {
+      setGameErrors((current) => ({ ...current, [game.id]: getActionError(requestError) }))
+    } finally {
+      setLoadingEditGameId(null)
+    }
+  }
+
+  const handleEditGameChange = (event) => {
+    const { name, value } = event.target
+    setEditingGame((currentGame) => ({ ...currentGame, [name]: value }))
+  }
+
+  const handleEditTotalPlayers = (value) => {
+    setEditingGame((currentGame) => {
+      const playerCount = Number(value)
+      let roleIds = currentGame.roleIds
+
+      if (currentGame.addRoles && Number.isInteger(playerCount) && playerCount > 0) {
+        roleIds = playerCount > roleIds.length
+          ? [
+              ...roleIds,
+              ...Array.from(
+                { length: playerCount - roleIds.length },
+                () => currentGame.vanillaTownieId,
+              ),
+            ]
+          : roleIds.slice(0, playerCount)
+      }
+
+      return { ...currentGame, totalPlayers: value, roleIds }
+    })
+  }
+
+  const handleEditRolesToggle = (checked) => {
+    setEditingGame((currentGame) => ({
+      ...currentGame,
+      addRoles: checked,
+      roleIds: checked
+        ? Array.from(
+            { length: Number(currentGame.totalPlayers) },
+            () => currentGame.vanillaTownieId,
+          )
+        : [],
+    }))
+  }
+
+  const handleEditRoleChange = (index, roleId) => {
+    setEditingGame((currentGame) => ({
+      ...currentGame,
+      roleIds: currentGame.roleIds.map((currentRoleId, currentIndex) => (
+        currentIndex === index ? roleId : currentRoleId
+      )),
+    }))
+  }
+
+  const handleSaveGame = async (event) => {
+    event.preventDefault()
+
+    if (!editingGame) return
+
+    setEditError('')
+    setIsSavingGame(true)
+
+    try {
+      const body = await request(`/games/${editingGame.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: editingGame.name,
+          password: editingGame.password,
+          totalPlayers: Number(editingGame.totalPlayers),
+          roleIds: editingGame.addRoles ? editingGame.roleIds : undefined,
+        }),
+      })
+      setGames((currentGames) => currentGames.map((game) => (
+        game.id === editingGame.id
+          ? {
+              ...game,
+              name: body.game.name,
+              totalPlayers: body.game.totalPlayers,
+              requiresPassword: body.game.requiresPassword,
+            }
+          : game
+      )))
+      editGameDialogRef.current?.close()
+      setEditingGame(null)
+    } catch (requestError) {
+      setEditError(requestError.message)
+    } finally {
+      setIsSavingGame(false)
+    }
+  }
+
   const handleStartGame = async (game) => {
     setStartingGameId(game.id)
     setGameErrors((current) => ({ ...current, [game.id]: '' }))
 
     try {
       const body = await request(`/games/${game.id}/start`, { method: 'POST' })
+
+      if (body.requiresPartnerSetup) {
+        setPartnerSetup({ gameId: game.id, candidates: body.partnerCandidates })
+        setSelectedPartnerIds([])
+        setPartnerGroups([])
+        setPartnerError('')
+        partnerDialogRef.current?.showModal()
+        return
+      }
+
       setGames((current) => current.map((currentGame) => (
         currentGame.id === game.id
           ? { ...currentGame, startedAt: body.startedAt }
@@ -182,6 +325,55 @@ function HomePage() {
       setGameErrors((current) => ({ ...current, [game.id]: getActionError(requestError) }))
     } finally {
       setStartingGameId(null)
+    }
+  }
+
+  const togglePartnerCandidate = (playerId) => {
+    setSelectedPartnerIds((currentPlayerIds) => (
+      currentPlayerIds.includes(playerId)
+        ? currentPlayerIds.filter((currentPlayerId) => currentPlayerId !== playerId)
+        : [...currentPlayerIds, playerId]
+    ))
+  }
+
+  const addPartnerGroup = () => {
+    if (selectedPartnerIds.length < 2) return
+
+    setPartnerGroups((currentGroups) => [...currentGroups, selectedPartnerIds])
+    setSelectedPartnerIds([])
+    setPartnerError('')
+  }
+
+  const removePartnerGroup = (groupIndex) => {
+    setPartnerGroups((currentGroups) => (
+      currentGroups.filter((_, currentIndex) => currentIndex !== groupIndex)
+    ))
+  }
+
+  const handleSavePartners = async (event) => {
+    event.preventDefault()
+
+    if (!partnerSetup) return
+
+    setPartnerError('')
+    setIsSavingPartners(true)
+
+    try {
+      const body = await request(`/games/${partnerSetup.gameId}/start/partners`, {
+        method: 'POST',
+        body: JSON.stringify({ partnerGroups }),
+      })
+      setGames((current) => current.map((currentGame) => (
+        currentGame.id === partnerSetup.gameId
+          ? { ...currentGame, startedAt: body.startedAt }
+          : currentGame
+      )))
+      partnerDialogRef.current?.close()
+      setPartnerSetup(null)
+    } catch (requestError) {
+      setPartnerError(requestError.message)
+    } finally {
+      setIsSavingPartners(false)
     }
   }
 
@@ -266,14 +458,26 @@ function HomePage() {
             <div className="game-card-header">
               <h2>{game.name}</h2>
               {game.isModerator && (
-                <button
-                  className="delete-game-button"
-                  type="button"
-                  disabled={deletingGameId === game.id}
-                  onClick={() => handleDeleteGame(game)}
-                >
-                  {deletingGameId === game.id ? 'Deleting...' : 'Delete game'}
-                </button>
+                <div className="game-card-actions">
+                  {!game.startedAt && (
+                    <button
+                      className="edit-game-button"
+                      type="button"
+                      disabled={loadingEditGameId === game.id}
+                      onClick={() => handleEditGame(game)}
+                    >
+                      {loadingEditGameId === game.id ? 'Loading...' : 'Edit game'}
+                    </button>
+                  )}
+                  <button
+                    className="delete-game-button"
+                    type="button"
+                    disabled={deletingGameId === game.id}
+                    onClick={() => handleDeleteGame(game)}
+                  >
+                    {deletingGameId === game.id ? 'Deleting...' : 'Delete game'}
+                  </button>
+                </div>
               )}
             </div>
             <div className="game-card-content">
@@ -319,7 +523,7 @@ function HomePage() {
                       {startingGameId === game.id ? 'Starting...' : 'Start game'}
                     </button>
                   )}
-                  {!game.startedAt && game.isPlayer && (
+                  {!game.startedAt && game.isPlayer && !game.isModerator && (
                     <button
                       className="leave-button"
                       type="button"
@@ -329,7 +533,7 @@ function HomePage() {
                       {leavingGameId === game.id ? 'Leaving...' : 'Leave game'}
                     </button>
                   )}
-                  {!game.startedAt && !game.isPlayer && game.requiresPassword && (
+                  {!game.startedAt && !game.isPlayer && !game.isModerator && game.requiresPassword && (
                     <form
                       className="join-form"
                       onSubmit={(event) => {
@@ -355,7 +559,7 @@ function HomePage() {
                       </div>
                     </form>
                   )}
-                  {!game.startedAt && !game.isPlayer && !game.requiresPassword && (
+                  {!game.startedAt && !game.isPlayer && !game.isModerator && !game.requiresPassword && (
                     <button
                       className="join-button"
                       type="button"
@@ -407,6 +611,212 @@ function HomePage() {
           ))}
         </div>
       )}
+
+      <dialog
+        ref={editGameDialogRef}
+        className="role-dialog edit-game-dialog"
+        aria-labelledby="edit-game-dialog-title"
+      >
+        {editingGame && (
+          <form className="role-form" onSubmit={handleSaveGame}>
+            <div className="role-dialog-heading">
+              <div>
+                <p className="page-eyebrow">Game settings</p>
+                <h2 id="edit-game-dialog-title">Edit game</h2>
+              </div>
+              <button
+                className="dialog-close"
+                type="button"
+                aria-label="Close"
+                onClick={() => editGameDialogRef.current?.close()}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="field-group">
+              <label htmlFor="edit-game-name">Game name</label>
+              <input
+                id="edit-game-name"
+                name="name"
+                type="text"
+                value={editingGame.name}
+                maxLength="120"
+                required
+                autoFocus
+                onChange={handleEditGameChange}
+              />
+            </div>
+
+            <div className="field-group">
+              <label htmlFor="edit-game-password">Join password (optional)</label>
+              <input
+                id="edit-game-password"
+                name="password"
+                type="text"
+                value={editingGame.password}
+                maxLength="120"
+                onChange={handleEditGameChange}
+              />
+            </div>
+
+            <div className="field-group">
+              <label htmlFor="edit-total-players">Total players</label>
+              <input
+                id="edit-total-players"
+                type="number"
+                value={editingGame.totalPlayers}
+                min={Math.max(1, editingGame.joinedPlayers)}
+                required
+                onChange={(event) => handleEditTotalPlayers(event.target.value)}
+              />
+            </div>
+
+            <label className="game-role-toggle" htmlFor="edit-add-roles">
+              <input
+                id="edit-add-roles"
+                type="checkbox"
+                checked={editingGame.addRoles}
+                onChange={(event) => handleEditRolesToggle(event.target.checked)}
+              />
+              <span>Add roles</span>
+            </label>
+
+            {editingGame.addRoles && (
+              <div className="role-slot-list edit-role-slots">
+                {editingGame.roleIds.map((roleId, index) => (
+                  <div className="field-group" key={index}>
+                    <label htmlFor={`edit-player-role-${index}`}>Player {index + 1}</label>
+                    <select
+                      id={`edit-player-role-${index}`}
+                      value={roleId}
+                      required
+                      onChange={(event) => handleEditRoleChange(index, event.target.value)}
+                    >
+                      {editAvailableRoles.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          {role.alignment} - {role.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {editError && (
+              <p className="form-message form-error" role="alert">{editError}</p>
+            )}
+
+            <div className="role-form-actions">
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={isSavingGame}
+                onClick={() => editGameDialogRef.current?.close()}
+              >
+                Cancel
+              </button>
+              <button className="save-button" type="submit" disabled={isSavingGame}>
+                {isSavingGame ? 'Saving...' : 'Save changes'}
+              </button>
+            </div>
+          </form>
+        )}
+      </dialog>
+
+      <dialog
+        ref={partnerDialogRef}
+        className="role-dialog partner-dialog"
+        aria-labelledby="partner-dialog-title"
+      >
+        <form className="role-form" onSubmit={handleSavePartners}>
+          <div className="role-dialog-heading">
+            <div>
+              <p className="page-eyebrow">Start game</p>
+              <h2 id="partner-dialog-title">Assign partners</h2>
+            </div>
+            <button
+              className="dialog-close"
+              type="button"
+              aria-label="Close"
+              onClick={() => partnerDialogRef.current?.close()}
+            >
+              &times;
+            </button>
+          </div>
+
+          <fieldset className="partner-candidates">
+            <legend>Partner group members</legend>
+            {partnerSetup?.candidates.map((candidate) => {
+              const isGrouped = partnerGroups.some((group) => group.includes(candidate.id))
+
+              return (
+                <label key={candidate.id}>
+                  <input
+                    type="checkbox"
+                    checked={selectedPartnerIds.includes(candidate.id)}
+                    disabled={isGrouped}
+                    onChange={() => togglePartnerCandidate(candidate.id)}
+                  />
+                  <span>
+                    <strong>{candidate.displayName || 'Unnamed player'}</strong>
+                    <small>{candidate.alignment} {candidate.roleName}</small>
+                  </span>
+                </label>
+              )
+            })}
+          </fieldset>
+
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={selectedPartnerIds.length < 2}
+            onClick={addPartnerGroup}
+          >
+            Add partner group
+          </button>
+
+          {partnerGroups.length > 0 && (
+            <ol className="partner-group-list">
+              {partnerGroups.map((group, groupIndex) => (
+                <li key={group.join(':')}>
+                  <div>
+                    <strong>Group {groupIndex + 1}</strong>
+                    <span>
+                      {group.map((playerId) => (
+                        partnerSetup?.candidates.find((candidate) => candidate.id === playerId)
+                          ?.displayName || 'Unnamed player'
+                      )).join(', ')}
+                    </span>
+                  </div>
+                  <button type="button" onClick={() => removePartnerGroup(groupIndex)}>
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          {partnerError && (
+            <p className="form-message form-error" role="alert">{partnerError}</p>
+          )}
+
+          <div className="role-form-actions">
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={isSavingPartners}
+              onClick={() => partnerDialogRef.current?.close()}
+            >
+              Cancel
+            </button>
+            <button className="save-button" type="submit" disabled={isSavingPartners}>
+              {isSavingPartners ? 'Starting...' : 'Save partners and start'}
+            </button>
+          </div>
+        </form>
+      </dialog>
     </section>
   )
 }
